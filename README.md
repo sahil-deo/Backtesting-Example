@@ -1,17 +1,18 @@
 
 ## Strategy
 
-### Trade Condition:
-- Compare mean volume of yesterday's last 120 mins and 10 mins
-- If last 10 min mean volume > last 120 mins mean volume * **multiplier** `# this indicates spike in volume `
-
 ### Buy Condition:
-- If slope is positive, trend is upwards
-- Buy x amounts of shares using certain percentage of capital `# capital_per_buy is the percentage of capital used for each buy order`
+
+- Compare average of yesterday’s last 120 min’s volume with last 10 min’s volume. 
+- If 10 min volume is greater than MULTIPLIER * 120 min volume, a spike is observed. 
+- If the slope of the trend is positive, i.e. value of the instrument is increase, then buy stock using CAPITALPERBUY * CurrentCapital. 
+- eg. CurrentCapital = 10,000rs, CAPITALPERBUY = 10%, then buy using 1000rs.
+- Buy order is executed at Today’s first candle’s OpenPrice.
 
 ### Sell Condition:
-- If slope is negative, trend is downwards
-- Sell number of shares holding * **sell_multiplier** `# sell_multiplier is the percentage of shares sold for each sell order`
+- Implemented a trailing stoploss at STOPLOSS%. 
+- This works by iterating through every candle Today and comparing the CandleLow against the calculated StopLossPrice. 
+- Sell order is executed exactly at StopLoss Price.
 
 ## Run the test
 
@@ -35,15 +36,21 @@
 
 The Test is done over a duration of time with an initial capital.
 
-#### Default values
+#### Test values
 
-- Capital: 1,00,000
-- Duration: 01-01-2024 to 31-12-2024
+- MULTIPLIER = 3.0 # 300%
+- STOPLOSS = 0.05 # 5%
+- CAPITALPERBUY = 0.1 # 10%
+- INITIALCAPITAL = 100000
+- STARTDATE = '01-01-2024'
+- ENDDATE = '12-31-2024'
+
+- The Config values can be modified from config.py
 
 The duration can be set from start of the data (02-02-2015) to end of the data (02-02-2025)
 
 #### Data
-The test data can be either a single csv file or an entire folder consisting of only csv files.
+The test data is list of .csv files defined in config.py
 
 #### Test execution
 
@@ -51,22 +58,8 @@ The test data can be either a single csv file or an entire folder consisting of 
 $ python volume.py
 ```
 
-```
-Use Default Values (Y/n): Y
-```
-
-```
-1. Single File 
-2. Multiple Files
-> 2
-```
-
-```
-Enter folder path: ./data
-```
-
 ## Results
-Results of the test are stored in `./results/result.csv` file.
+Results of the test are stored in `./result/result.csv` file.
 
 Following Metrics are calculated in the result:
 
