@@ -10,7 +10,10 @@ wheels/
 .venv
 
 
-# package manager files
+# Package manager files
 .python-version
 pyproject.toml
 uv.lock
+
+# Private files
+notes.txt

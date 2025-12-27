@@ -1,45 +1,65 @@
 class Metrics:
 
     
-    def __init__(self, no_of_shares_holding = 0, peak_holding = 0, current_share_value = 0,
-                initial_cash = 0, current_cash = 0, total_cost = 0, ran_out_of_cash = 0,
-                capital_per_buy = 100, multipier = 1, sell_multiplier = 1, 
-                buy = 0, sell = 0, last_buy = 0, last_sell = 0, 
-                equity = [], share_value = [], order_profit = []):
+    def __init__(self, NoOfSharesHolding = 0, PeakHolding = 0, CurrentShareValue = 0,
+                INITIALCAPITAL = 0, CurrentCapital = 0, TotalCost = 0, RanOutOfCapital = 0,
+                CAPITALPERBUY = 100, MULTIPLIER = 1, SELLMULTIPLIER = 1, 
+                Buy = 0, Sell = 0, LastBuy = 0, LastSell = 0, ShareHigh = None,
+                Equity = None, ShareValue = None, OrderProfit = None, Orders = None, Positions = None):
 
         # ========================
         # POSITION / HOLDINGS
         # ========================
-        self.no_of_shares_holding = no_of_shares_holding    # amount of shares held right now
-        self.peak_holding = peak_holding                    # maximum amount of shares held at a time
-        self.current_share_value = current_share_value      # current value of share
+        self.NoOfSharesHolding  = NoOfSharesHolding    # amount of shares held right now
+        self.PeakHolding        = PeakHolding                    # maximum amount of shares held at a time
+        self.CurrentShareValue  = CurrentShareValue       # current value of share
 
         # ========================  
         # CAPITAL & CASH FLOW   
         # ========================  
-        self.initial_cash     = initial_cash    
-        self.current_cash     = current_cash    
-        self.total_cost       = total_cost                  # total cost of holding shares
-        self.ran_out_of_cash  = ran_out_of_cash             # no of times when current cash is insufficient to buy a share
+        self.INITIALCAPITAL     = INITIALCAPITAL    
+        self.CurrentCapital     = CurrentCapital    
+        self.TotalCost          = TotalCost                  # total cost of holding shares
+        self.RanOutOfCapital    = RanOutOfCapital             # no of times when current cash is insufficient to buy a share
 
         # ========================  
         # TRADE SIZING / RISK   
         # ========================  
-        self.capital_per_buy = capital_per_buy              # capital fraction per buy
-        self.multiplier      = multipier                    # volume multiplier
-        self.sell_multiplier = sell_multiplier              # fraction of shares to sell
+        self.CAPITALPERBUY      = CAPITALPERBUY              # capital fraction per buy
+        self.MULTIPLIER         = MULTIPLIER                    # volume multiplier
+        self.SELLMULTIPLIER     = SELLMULTIPLIER              # fraction of shares to sell
 
         # ========================  
         # ORDER COUNTS & PRICES 
         # ========================  
-        self.buy       = buy                                # total buy orders executed
-        self.sell      = sell                               # total sell orders executed
-        self.last_buy  = last_buy                           # last buy price
-        self.last_sell = last_sell                          # last sell price
+        self.Buy            = Buy                                # total buy orders executed
+        self.Sell           = Sell                               # total sell orders executed
+        self.LastBuy        = LastBuy                           # last buy price
+        self.LastSell       = LastSell                          # last sell price
+        self.ShareHigh      = ShareHigh                       # Highest Share Price since last buy
+        self.LastBuyDate    = ''
+        self.LastSellDate   = ''
 
         # ========================  
         # PERFORMANCE TRACKING  
         # ========================  
-        self.equity       = equity                          # list of equity over time
-        self.share_value  = share_value                     # list of share value over time
-        self.order_profit = order_profit                    # list of executed order's profit and loss over time
+        self.Equity             = Equity if Equity is not None else []            # list of equity over time
+        self.ShareValue         = ShareValue if ShareValue is not None else []     # list of share value over time
+        self.OrderProfit        = OrderProfit if OrderProfit is not None else []   # list of executed order's profit and loss over time
+        self.Orders             = Orders if Orders is not None else []
+        self.Positions      = Positions if Positions is not None else []
+
+class Order:
+    def __init__(self, TimeStamp='', Quantity = 0, Type = '', PnL = 0, SharePrice = 0, TotalCost=0, BaseLineVolume = 0, EndVolume = 0, BaseLineVolumeMean = 0, EndVolumeMean = 0):
+        
+        self.TimeStamp = TimeStamp
+        self.Quantity = Quantity
+        self.Type = Type # buy or sell
+        self.PnL = PnL
+        self.TotalCost = TotalCost
+        self.SharePrice = SharePrice
+        self.BaseLineVolume = BaseLineVolume 
+        self.EndVolume = EndVolume
+        self.BaseLineVolumeMean = BaseLineVolumeMean 
+        self.EndVolumeMean = EndVolumeMean
+
