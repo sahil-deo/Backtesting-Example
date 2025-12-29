@@ -29,10 +29,12 @@ AggregateMetrics = pd.DataFrame(columns=[
     "Max Drawdown",
     "Hit Rate",
     "Holding Shares",
+    "Short Shares",
     "Max Holding",
+    "Max Short",
     "Out of Capital",
-    "Buy Orders",
-    "Sell Orders",
+    "Short Orders",
+    "Long Orders",
     "Initial Capital",
     "Current Capital",
     "Holding Capital",
@@ -53,8 +55,8 @@ for df in DataFiles:
 
     # ----- cleaning the data ----- 
     
-    df = df.dropna()
-    df = df.drop_duplicates(subset="date")
+    df.dropna(inplace=True)
+    df.drop_duplicates(subset="date", inplace=True)
     df["timestamp"] = pd.to_datetime(df["date"])
     df["date"] = df["timestamp"].dt.date
     df = df.sort_values("timestamp")
@@ -65,9 +67,8 @@ for df in DataFiles:
     metrics = Metrics(
         INITIALCAPITAL=INITIALCAPITAL, 
         CurrentCapital=INITIALCAPITAL,      # current capital = initial cast at the start of the test
-        CAPITALPERBUY=config.CAPITALPERBUY,            # percentage of capital to use per buy order
+        CAPITALPERORDER=config.CAPITALPERORDER,            # percentage of capital to use per buy order
         MULTIPLIER= config.MULTIPLIER,               # percentage of spike in volume required to activate trade condition
-        SELLMULTIPLIER=0.5             # percentage of shares to sell per sell order
     )
 
     # ----- filtering dates for test -----
@@ -89,28 +90,30 @@ for df in DataFiles:
 
     # ----- test loop -----
 
-    for i in range(1, len(Dates)): # loop over dates 
+    for i in range(len(Dates)): # loop over dates 
 
-        YesterdayDF = Grouped[Dates[i-1]]    
         TodayDF = Grouped[Dates[i]]    
         
-        YesterdayBaselineVolume = YesterdayDF["volume"].iloc[-130:-10]
-        YesterdayEndVolume = YesterdayDF["volume"].iloc[-10:]
+        TodayBaselineVolume = TodayDF["volume"].iloc[-135:-15]
+        TodayEndVolume = TodayDF["volume"].iloc[-15:-5]
 
-        YesterdayBaselineMean = YesterdayBaselineVolume.mean()     # mean of volume of trades from yesterday's last 120 mins 
-        YesterdayEndMean = YesterdayEndVolume.mean()           # mean of volume of trades from yesterday's last 10 mins
+        TodayBaselineMean = TodayBaselineVolume.mean()     # mean of volume of trades from yesterday's last 135 - 15 mins 
+        TodayEndMean = TodayEndVolume.mean()           # mean of volume of trades from yesterday's last 15 - 10 mins
 
-        TodayOpenPrice = TodayDF["open"].iloc[0]                             # today's open price <= using open price as the bid price
+        TodayBuyPrice = TodayDF["close"].iloc[-4]                             # today's open price <= using dayend - 2 price as the bid price
+        TodaySellPrice = TodayDF["close"].iloc[-4]                             # today's sell price <= using dayend - 5 price as the ask price
+
         # print(f"Symbol: {Symbol}, Date: {Dates[i]}, Price: {TodayOpenPrice}, DF shape: {TodayDF.shape}")
-        if len(YesterdayDF) < 120:                                           # Skips Short Days
+        
+        if len(TodayDF) < 135:                                           # Skips Short Days
             continue
 
         # ----- Volume Spike Condition -----
 
         # volume of trades in last 10 mins is greater than the volume of trades in last 120 mins * multiplier
-        if(YesterdayEndMean > YesterdayBaselineMean*metrics.MULTIPLIER):    
+        if(TodayEndMean > TodayBaselineMean*metrics.MULTIPLIER):    
 
-            Arr = YesterdayDF["close"].iloc[-10:].to_numpy()
+            Arr = TodayDF["close"].iloc[-15:-5].to_numpy()
             X = np.arange(len(Arr))
 
             # slope to determine the direction of the trend
@@ -120,165 +123,262 @@ for df in DataFiles:
 
             if Slope > 0:        
                 
-                InvestableCapital = metrics.CurrentCapital * (metrics.CAPITALPERBUY)
-                NoOfSharesToBuy = int(InvestableCapital/TodayOpenPrice)
+                InvestableCapital = metrics.CurrentCapital * (metrics.CAPITALPERORDER)
+                NoOfSharesToBuy = int(InvestableCapital/TodayBuyPrice)
 
                 if NoOfSharesToBuy >= 1:
                 
-                    metrics.Buy+=1
+                    metrics.Long+=1
                 
-                    Cost = TodayOpenPrice * NoOfSharesToBuy
+                    Cost = TodayBuyPrice * NoOfSharesToBuy
                 
-                    metrics.TotalCost += Cost
                     metrics.CurrentCapital -= Cost
-                    metrics.LastBuy = TodayOpenPrice
+                    metrics.LastLong = TodayBuyPrice
                     metrics.NoOfSharesHolding += NoOfSharesToBuy
                     metrics.PeakHolding = max(metrics.PeakHolding, metrics.NoOfSharesHolding)
+                    metrics.LastLongDate = Dates[i]
+                    EntryTimeStamp = TodayDF.iloc[-4]["timestamp"]
 
                     if metrics.ShareHigh is None:
-                        metrics.ShareHigh = TodayOpenPrice
+                        metrics.ShareHigh = TodayBuyPrice
                     else:
                         # Update ShareHigh to reflect current market price on new entry
-                        metrics.ShareHigh = max(metrics.ShareHigh, TodayOpenPrice)
+                        metrics.ShareHigh = max(metrics.ShareHigh, TodayBuyPrice)
 
 
-                    TimeStamp = TodayDF.iloc[0]["timestamp"]
-                    metrics.Positions.append(Position(EntryPrice=TodayOpenPrice, Quantity=NoOfSharesToBuy, EntryTimeStamp=TimeStamp))
+
+                    metrics.Positions.append(Position(EntryPrice=TodayBuyPrice, Quantity=NoOfSharesToBuy, EntryTimeStamp=EntryTimeStamp, Type='long'))
                     metrics.Orders.append(Order(
-                            TimeStamp=TimeStamp, 
+                            TimeStamp=EntryTimeStamp, 
                             Quantity=NoOfSharesToBuy, 
-                            Type='buy', 
+                            Type='long', 
                             PnL=0, 
-                            SharePrice=TodayOpenPrice, 
                             TotalCost = Cost,
-                            BaseLineVolume=YesterdayBaselineVolume.sum(),
-                            EndVolume=YesterdayEndVolume.sum(),
-                            BaseLineVolumeMean=YesterdayBaselineMean,
-                            EndVolumeMean=YesterdayEndMean
+                            SharePrice=TodayBuyPrice, 
+                            BaseLineVolume=TodayBaselineVolume.sum(),
+                            EndVolume=TodayEndVolume.sum(),
+                            BaseLineVolumeMean=TodayBaselineMean,
+                            EndVolumeMean=TodayEndMean
                         ))
-                    metrics.LastBuyDate = Dates[i]
                 else:
                     metrics.RanOutOfCapital += 1
 
             # ----- Sell Condition -----
 
-            # elif Slope < 0 and metrics.NoOfSharesHolding > 0:
+            elif Slope < 0:
                 
-            #     metrics.Sell+=1
-            #     metrics.LastSell = TodayOpenPrice
+                InvestableCapital = metrics.CurrentCapital * (metrics.CAPITALPERORDER)
+                NoOfSharesToSell = int(InvestableCapital/TodaySellPrice)
                 
+                if NoOfSharesToSell > 0:
 
+                    metrics.Short+=1
 
-            #     SharesToSell = int(metrics.NoOfSharesHolding * metrics.SELLMULTIPLIER)
-                
-            #     # for cases like 
-            #     # NoOfSharesHolding (1) * SellMultiplier (0.2)  
-            #     # 0.2 gets converted to int = 0 <- cannot sell zero shares
-            #     SharesSold = max(1, SharesToSell)    
+                    Cost = TodaySellPrice * NoOfSharesToSell                    
+                    
+                    metrics.CurrentCapital += Cost
+                    metrics.LastShort = TodaySellPrice
+                    metrics.NoOfSharesShort += NoOfSharesToSell
+                    metrics.PeakShort = max(metrics.PeakShort, metrics.NoOfSharesShort)
+                    metrics.LastShortDate = Dates[i]
+                    EntryTimeStamp = TodayDF.iloc[-4]["timestamp"]
 
-            #     # not completely necessary but adds a guard rail
-            #     SharesSold = min(SharesSold, metrics.NoOfSharesHolding)
-                
-            #     # avg price is required for calculation of Profit 
-            #     AvgPrice = metrics.TotalCost/metrics.NoOfSharesHolding
-            #     SellValue = TodayOpenPrice * SharesSold
+                    if metrics.ShareLow == None: 
+                        metrics.ShareLow = TodaySellPrice
+                    else:
+                        metrics.ShareLow = min(metrics.ShareLow, TodaySellPrice)
 
-            #     Profit = SellValue - (AvgPrice * SharesSold)
-                
-            #     metrics.CurrentCapital += SellValue
-            #     metrics.OrderProfit.append(Profit) # order Profit is noted for hitrate calculation later
-            #     metrics.NoOfSharesHolding -= SharesSold
-            #     metrics.TotalCost -= AvgPrice * SharesSold               
-            #     metrics.Orders.append(Order(TimeStamp=TodayDF.iloc[0]["timestamp"], Quantity=SharesSold, Type='sell', PnL=Profit, SharePrice=TodayOpenPrice, TotalCost = SellValue))
+                    metrics.Positions.append(Position(EntryPrice=TodaySellPrice, Quantity=NoOfSharesToSell, EntryTimeStamp=EntryTimeStamp, Type='short'))
+                    metrics.Orders.append(Order(
+                                TimeStamp=EntryTimeStamp, 
+                                Quantity=NoOfSharesToSell, 
+                                Type='short', 
+                                PnL=0, 
+                                TotalCost = Cost,
+                                SharePrice=TodaySellPrice, 
+                                BaseLineVolume=TodayBaselineVolume.sum(),
+                                EndVolume=TodayEndVolume.sum(),
+                                BaseLineVolumeMean=TodayBaselineMean,
+                                EndVolumeMean=TodayEndMean
+                            ))
+                else:
+                    metrics.RanOutOfCapital += 1
 
-        # ----- Trailing Stop Loss at config.STOPLOSS percent -----
 
         
 
-        if metrics.NoOfSharesHolding > 0:
 
-            # if metrics.ShareHigh == None:
-            #     metrics.ShareHigh = metrics.LastBuy
+        # ----- Trailing Stop Loss at config.STOPLOSS percent -----
 
 
-            for _, Row in TodayDF.iterrows():
+        for _, Row in TodayDF.iterrows():
+            
+            CandleHigh = Row["high"]
+            CandleLow = Row["low"]
+
+
+            
+            for position in metrics.Positions:
+
+                if position.Status == 'closed':
+                    continue
+
+                if position.Type == "long":
+
+                    if position.EntryTimeStamp >= Row["timestamp"]: 
+                        continue
                 
-                CandleHigh = Row["high"]
-                CandleLow = Row["low"]
-
-
-                # ----- Computing new stoploss price -----
-                
-                for position in metrics.Positions:
+                    # ----- Computing new stoploss price -----
                     
                     position.High = max(CandleHigh, position.High)
-
-                    if position.Status == 'closed':
-                        continue
 
                     StopPrice = position.High * (1-STOPLOSS)
 
                     if CandleLow <= StopPrice:
-                        metrics.Sell+=1
-                        metrics.LastSell = StopPrice
-                        SharesToSell = position.Quantity
-                        SharesSold = SharesToSell
+                        metrics.LastClose = StopPrice
+                        NoOfSharesToSell = position.Quantity
 
 
                         # ----- Updating Position -----
 
                         position.Status='closed'
                         position.ExitPrice = StopPrice
-                        
-                        TimeStamp = TodayDF.iloc[0]["timestamp"]
+
+                        TimeStamp = Row['timestamp']
                         position.ExitTimeStamp = TimeStamp
                         
-
                         # ----- Updating Metrics ------
 
                         EntryPrice = position.EntryPrice
-
-                        SellValue = StopPrice * SharesSold
-
-                        Profit = SellValue - (EntryPrice * SharesSold)
-
-                        metrics.CurrentCapital += SellValue
-                        metrics.OrderProfit.append(Profit)
+                        Cost = StopPrice * NoOfSharesToSell
+                        Profit = Cost - (EntryPrice * NoOfSharesToSell)
                         
-                        metrics.NoOfSharesHolding -= SharesSold
-                        metrics.TotalCost -= EntryPrice * SharesSold
+                        metrics.CurrentCapital += Cost
+                        metrics.OrderProfit.append(Profit)
+                        metrics.NoOfSharesHolding -= NoOfSharesToSell
+                        metrics.LastCloseDate = Dates[i]
+
+                        # ----- Creating Close Order -----
 
                         metrics.Orders.append(Order(
                             TimeStamp=Row["timestamp"],
-                            Quantity=SharesSold,
-                            Type="sell",
+                            Quantity=NoOfSharesToSell,
+                            Type="close",
                             PnL=Profit,
                             SharePrice=StopPrice,
-                            TotalCost=SellValue
+                            TotalCost=Cost
                         ))
                         
 
-                        metrics.LastSellDate = Dates[i]
 
                         # break  # Exit day after loss sell
 
                     # metrics.ShareHigh = max(CandleHigh, metrics.ShareHigh)
+                elif position.Type == 'short':
+                    if position.EntryTimeStamp >= Row["timestamp"]: 
+                        continue
+                
+                    position.Low = min(CandleLow, position.Low)
+
+                    StopPrice = position.Low * (1+STOPLOSS)
+
+                    if CandleHigh >= StopPrice:
+                        metrics.LastClose = StopPrice
+                        NoOfSharesToBuy = position.Quantity
+
+
+                        # ----- Updating Position -----
+
+                        position.Status='closed'
+                        position.ExitPrice = StopPrice
+
+                        TimeStamp = Row['timestamp']
+                        position.ExitTimeStamp = TimeStamp
+                        
+                        # ----- Updating Metrics ------
+
+                        EntryPrice = position.EntryPrice
+                        Cost = StopPrice * NoOfSharesToBuy
+                        Profit = (EntryPrice * NoOfSharesToBuy) - Cost
+
+                        metrics.CurrentCapital -= Cost
+                        metrics.OrderProfit.append(Profit)
+                        metrics.NoOfSharesShort -= NoOfSharesToBuy
+                        metrics.LastCloseDate = Dates[i]
+
+                        # ----- Creating Close Order -----
+
+                        metrics.Orders.append(Order(
+                            TimeStamp=Row["timestamp"],
+                            Quantity=NoOfSharesToBuy,
+                            Type="close",
+                            PnL=Profit,
+                            SharePrice=StopPrice,
+                            TotalCost=Cost
+                        ))
+            
+        # Close Short positions at EOD
+        TodayClosePrice = TodayDF["close"].iloc[-1]
+
+        for position in metrics.Positions:
+            if position.Type == 'short' and position.Status != 'closed':
+                
+                StopPrice = TodayClosePrice
+                NoOfSharesToBuy = position.Quantity
+
+                # ----- Updating Position -----
+
+                position.Status='closed'
+                position.ExitPrice = StopPrice
+                TimeStamp = TodayDF.iloc[-1]["timestamp"]
+                position.ExitTimeStamp = TimeStamp
+                
+                # ----- Updating Metrics ------
+
+                
+                EntryPrice = position.EntryPrice
+                Cost = StopPrice * NoOfSharesToBuy
+                Profit = (EntryPrice * NoOfSharesToBuy) - Cost
+
+                metrics.CurrentCapital -= Cost
+                metrics.OrderProfit.append(Profit)
+                metrics.NoOfSharesShort -= NoOfSharesToBuy
+                metrics.LastCloseDate = Dates[i]
+
+                # ----- Creating Close Order -----
+
+                metrics.Orders.append(Order(
+                    TimeStamp=TimeStamp,
+                    Quantity=NoOfSharesToBuy,
+                    Type="close",
+                    PnL=Profit,
+                    SharePrice=StopPrice,
+                    TotalCost=Cost
+                ))
 
 
         # ----- Update Equity daily based on today's share price -----
-        ToDayClosePrice = TodayDF["close"].iloc[-1]
-        metrics.Equity.append((metrics.NoOfSharesHolding * ToDayClosePrice) + metrics.CurrentCapital)
-        metrics.ShareValue.append(ToDayClosePrice)
-        metrics.CurrentShareValue = ToDayClosePrice
+        Equity = metrics.CurrentCapital
 
+        for p in metrics.Positions:
+            if p.Status == "open":
+                if p.Type == "long":
+                    Equity += (TodayClosePrice - p.EntryPrice) * p.Quantity
+                else:
+                    Equity -= (TodayClosePrice - p.EntryPrice) * p.Quantity
+
+        metrics.Equity.append(Equity)
+        metrics.CurrentShareValue = TodayClosePrice
 
     # ----- post test metrics calculation -----
 
     HoldingCapital = metrics.NoOfSharesHolding * metrics.CurrentShareValue
+
     Profit = (metrics.CurrentCapital+HoldingCapital) - metrics.INITIALCAPITAL
     ProfitPercentage = (Profit / metrics.INITIALCAPITAL) * 100
     MaxDrawdown = 0
-    Peak = metrics.Equity[0] if metrics.Equity else metrics.INITIALCAPITAL
+    Peak = max(metrics.INITIALCAPITAL, metrics.Equity[0]) if metrics.Equity else metrics.INITIALCAPITAL
+
 
 
     for i in metrics.Equity:
@@ -303,8 +403,8 @@ for df in DataFiles:
     # print("Holding Shares:",    metrics.NoOfSharesHolding)
     # print("Max Holding:",       metrics.PeakHolding)
     # print("Out of Capital:",       metrics.RanOutOfCapital)
-    # print("Buy Orders:",        metrics.Buy)
-    # print("Sell Orders:",       metrics.Sell)
+    # print("Buy Orders:",        metrics.Long)
+    # print("Sell Orders:",       metrics.Short)
     # print("Initial Capital:",      round(metrics.InitialCapital, 2))
     # print("Current Capital:",      round(metrics.CurrentCapital, 2))
     # print("Holding Capital:",      round(HoldingCapital, 2))
@@ -319,10 +419,12 @@ for df in DataFiles:
         "Max Drawdown":      round(MaxDrawdown * 100, 2),
         "Hit Rate":          round(HitRate, 2),
         "Holding Shares":    metrics.NoOfSharesHolding,
+        "Short Shares":      metrics.NoOfSharesShort,
         "Max Holding":       metrics.PeakHolding,
+        "Max Short":         metrics.PeakShort,
         "Out of Capital":    metrics.RanOutOfCapital,
-        "Buy Orders":        metrics.Buy,
-        "Sell Orders":       metrics.Sell,
+        "Long Orders":       metrics.Long,
+        "Short Orders":      metrics.Short,
         "Initial Capital":   round(metrics.INITIALCAPITAL, 2),
         "Current Capital":   round(metrics.CurrentCapital, 2),
         "Holding Capital":   round(HoldingCapital, 2),
@@ -350,25 +452,30 @@ for df in DataFiles:
         }
         orders.loc[len(orders)]=row
 
-    positions = pd.DataFrame(columns=['EntryTimeStamp', 'EntryPrice', 'Quantity','TotalCost', 'Status', 'ExitTimeStamp', 'ExitPrice','Profit/Loss', 'Profit/LossPercentage'])
+    positions = pd.DataFrame(columns=['EntryTimeStamp', 'Type', 'EntryPrice', 'Quantity','TotalCost', 'Status', 'ExitTimeStamp', 'ExitPrice','Profit/Loss', 'Profit/LossPercentage'])
     for i in metrics.Positions:
         
         PositionProfit=0
         PositionProfitPercentage=0
         
         if i.Status == 'closed':
-            PositionProfit = (i.ExitPrice - i.EntryPrice)*i.Quantity
-            PositionProfitPercentage = ((i.ExitPrice - i.EntryPrice)/i.EntryPrice)*100
-        
+            if i.Type == 'long':
+                PositionProfit = (i.ExitPrice - i.EntryPrice) * i.Quantity
+                PositionProfitPercentage = ((i.ExitPrice - i.EntryPrice) / i.EntryPrice) * 100
+            else:  # short
+                PositionProfit = (i.EntryPrice - i.ExitPrice) * i.Quantity
+                PositionProfitPercentage = ((i.EntryPrice - i.ExitPrice) / i.EntryPrice) * 100
+
         row = {
             "EntryTimeStamp": i.EntryTimeStamp,
+            "Type": i.Type,
             "EntryPrice": round(i.EntryPrice, 2),
             "Quantity": i.Quantity,
             "TotalCost": round(i.Quantity * i.EntryPrice),
             "Status": i.Status,
             "ExitTimeStamp": i.ExitTimeStamp,
-            "ExitPrice": i.ExitPrice,
-            "Profit/Loss": PositionProfit,
+            "ExitPrice": round(i.ExitPrice, 2),
+            "Profit/Loss": round(PositionProfit, 2),
             "Profit/LossPercentage": round(PositionProfitPercentage,2)
         }
         positions.loc[len(positions)]=row
@@ -385,13 +492,15 @@ row = {
     "Max Drawdown":      round(AggregateMetrics["Max Drawdown"].mean(), 2),
     "Hit Rate":          round(AggregateMetrics["Hit Rate"].mean(), 2),
     "Holding Shares":    round(AggregateMetrics["Holding Shares"].mean(), 2),
+    "Short Shares":      round(AggregateMetrics["Short Shares"].mean(), 2),
     "Max Holding":       round(AggregateMetrics["Max Holding"].mean(), 2),
-    "Out of Capital":       round(AggregateMetrics["Out of Capital"].mean(), 2),
-    "Buy Orders":        round(AggregateMetrics["Buy Orders"].mean(), 2),
-    "Sell Orders":       round(AggregateMetrics["Sell Orders"].mean(), 2),
-    "Initial Capital":      round(AggregateMetrics["Initial Capital"].mean(), 2),
-    "Current Capital":      round(AggregateMetrics["Current Capital"].mean(), 2),
-    "Holding Capital":      round(AggregateMetrics["Holding Capital"].mean(), 2),
+    "Max Short":         round(AggregateMetrics["Max Short"].mean(), 2),
+    "Out of Capital":    round(AggregateMetrics["Out of Capital"].mean(), 2),
+    "Long Orders":       round(AggregateMetrics["Long Orders"].mean(), 2),
+    "Short Orders":      round(AggregateMetrics["Short Orders"].mean(), 2),
+    "Initial Capital":   round(AggregateMetrics["Initial Capital"].mean(), 2),
+    "Current Capital":   round(AggregateMetrics["Current Capital"].mean(), 2),
+    "Holding Capital":   round(AggregateMetrics["Holding Capital"].mean(), 2),
     "Total Equity":      round(AggregateMetrics["Total Equity"].mean(), 2),
     "Profit":            round(AggregateMetrics["Profit"].mean(), 2),
     "Profit Percentage": round(AggregateMetrics["Profit Percentage"].mean(), 2)
@@ -403,3 +512,20 @@ AggregateMetrics.loc[len(AggregateMetrics)] = row
 
 # ----- save results at result/result.csv -----
 AggregateMetrics.to_csv("result/result.csv")
+
+
+from multiprocessing import Pool
+import os
+
+def Process(ListOfData):
+    pass
+
+
+
+if __name__ == '__main__':
+    with Pool(processes=os.cpu_count()) as pool:
+        ArgsList = [(df, ListOfData[i].split("/")[-1].replace(".csv", ""), i) for i, df in enumerate(DataFiles)]
+
+        results = pool.map(Process, ArgsList)
+
+    AggregateMetrics = pd.DataFrame(results)

@@ -1,44 +1,47 @@
 class Metrics:
 
     
-    def __init__(self, NoOfSharesHolding = 0, PeakHolding = 0, CurrentShareValue = 0,
-                INITIALCAPITAL = 0, CurrentCapital = 0, TotalCost = 0, RanOutOfCapital = 0,
-                CAPITALPERBUY = 100, MULTIPLIER = 1, SELLMULTIPLIER = 1, 
-                Buy = 0, Sell = 0, LastBuy = 0, LastSell = 0, ShareHigh = None,
+    def __init__(self, NoOfSharesHolding = 0, NoOfSharesShort = 0, PeakHolding = 0, PeakShort = 0, CurrentShareValue = 0,
+                INITIALCAPITAL = 0, CurrentCapital = 0, RanOutOfCapital = 0,
+                CAPITALPERORDER = 100, MULTIPLIER = 1, 
+                Short = 0, Long = 0, LastShort = 0, LastLong = 0, LastClose = 0, ShareHigh = None, ShareLow = None,
                 Equity = None, ShareValue = None, OrderProfit = None, Orders = None, Positions = None):
 
         # ========================
         # POSITION / HOLDINGS
         # ========================
-        self.NoOfSharesHolding  = NoOfSharesHolding    # amount of shares held right now
-        self.PeakHolding        = PeakHolding                    # maximum amount of shares held at a time
-        self.CurrentShareValue  = CurrentShareValue       # current value of share
+        self.NoOfSharesHolding  = NoOfSharesHolding   # amount of shares held right now
+        self.NoOfSharesShort    = NoOfSharesShort     # amount of shares short right now
+        self.PeakHolding        = PeakHolding         # maximum amount of shares held at a time
+        self.PeakShort          = PeakShort           # maximum amount of shares short at a time
+        self.CurrentShareValue  = CurrentShareValue   # current value of share
 
         # ========================  
         # CAPITAL & CASH FLOW   
         # ========================  
         self.INITIALCAPITAL     = INITIALCAPITAL    
         self.CurrentCapital     = CurrentCapital    
-        self.TotalCost          = TotalCost                  # total cost of holding shares
-        self.RanOutOfCapital    = RanOutOfCapital             # no of times when current cash is insufficient to buy a share
+        self.RanOutOfCapital    = RanOutOfCapital             # no of times when current cash is insufficient to execute an order
 
         # ========================  
         # TRADE SIZING / RISK   
         # ========================  
-        self.CAPITALPERBUY      = CAPITALPERBUY              # capital fraction per buy
-        self.MULTIPLIER         = MULTIPLIER                    # volume multiplier
-        self.SELLMULTIPLIER     = SELLMULTIPLIER              # fraction of shares to sell
+        self.CAPITALPERORDER    = CAPITALPERORDER             # capital fraction per buy
+        self.MULTIPLIER         = MULTIPLIER                  # volume multiplier
 
         # ========================  
         # ORDER COUNTS & PRICES 
         # ========================  
-        self.Buy            = Buy                                # total buy orders executed
-        self.Sell           = Sell                               # total sell orders executed
-        self.LastBuy        = LastBuy                           # last buy price
-        self.LastSell       = LastSell                          # last sell price
-        self.ShareHigh      = ShareHigh                       # Highest Share Price since last buy
-        self.LastBuyDate    = ''
-        self.LastSellDate   = ''
+        self.Short          = Short                           # total short orders executed
+        self.Long           = Long                            # total long orders executed
+        self.LastLong       = LastLong                        # last long order price
+        self.LastShort      = LastShort                       # last short order price
+        self.LastClose      = LastClose                       # last close order price  
+        self.ShareHigh      = ShareHigh                       # highest Share Price since last long
+        self.ShareLow       = ShareLow                        # lowest Share Price since last short 
+        self.LastLongDate   = ''
+        self.LastShortDate  = ''
+        self.LastCloseDate  = ''
 
         # ========================  
         # PERFORMANCE TRACKING  
@@ -50,11 +53,11 @@ class Metrics:
         self.Positions      = Positions if Positions is not None else []
 
 class Order:
-    def __init__(self, TimeStamp='', Quantity = 0, Type = '', PnL = 0, SharePrice = 0, TotalCost=0, BaseLineVolume = 0, EndVolume = 0, BaseLineVolumeMean = 0, EndVolumeMean = 0):
+    def __init__(self, TimeStamp='', Quantity = 0, Type = 'long', PnL = 0, SharePrice = 0, TotalCost=0, BaseLineVolume = 0, EndVolume = 0, BaseLineVolumeMean = 0, EndVolumeMean = 0):
         
         self.TimeStamp = TimeStamp
         self.Quantity = Quantity
-        self.Type = Type # buy or sell
+        self.Type = Type # long / short / close 
         self.PnL = PnL
         self.TotalCost = TotalCost
         self.SharePrice = SharePrice

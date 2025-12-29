@@ -1,5 +1,5 @@
 class Position:
-    def __init__(self, EntryPrice = 0, Quantity = 0, EntryTimeStamp = '', ExitTimeStamp = '', Status = 'open', ExitPrice = 0):
+    def __init__(self, EntryPrice = 0, Quantity = 0, EntryTimeStamp = '', ExitTimeStamp = '', Status = 'open', ExitPrice = 0, Type = 'long'):
         
         self.EntryPrice = EntryPrice
         self.ExitPrice = ExitPrice
@@ -10,3 +10,5 @@ class Position:
         self.Quantity = Quantity
         self.Status = Status
         self.High = EntryPrice
+        self.Low = EntryPrice
+        self.Type = Type

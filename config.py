@@ -2,8 +2,8 @@
 # It consists of constants used for testing
 
 MULTIPLIER = 3.0 # 300%
-STOPLOSS = 0.05 # 5%
-CAPITALPERBUY = 0.1 # 10%
+STOPLOSS = 0.05 # 1%
+CAPITALPERORDER = 0.1 # 10%
 
 INITIALCAPITAL = 100000
 
