@@ -1,8 +1,8 @@
 # This is a config file 
 # It consists of constants used for testing
 
-MULTIPLIER = 3.0 # 300%
-STOPLOSS = 0.05 # 1%
+MULTIPLIER = 4 # 150%
+STOPLOSS = 0.1 # 1%
 CAPITALPERORDER = 0.1 # 10%
 
 INITIALCAPITAL = 100000

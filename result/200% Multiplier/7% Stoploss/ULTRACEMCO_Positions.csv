@@ -1,0 +1,5 @@
+EntryTimeStamp,Type,EntryPrice,Quantity,TotalCost,Status,ExitTimeStamp,ExitPrice,Profit/Loss,Profit/LossPercentage
+2024-01-08 15:26:00,long,9939.65,1,9940,closed,2024-03-06 12:09:00,9597.6,-342.05,-3.44
+2024-03-11 15:26:00,long,9694.95,1,9695,closed,2024-04-15 09:15:00,9558.26,-136.69,-1.41
+2024-04-22 15:26:00,long,9565.0,1,9565,closed,2024-05-09 09:49:00,9467.4,-97.6,-1.02
+2024-05-10 15:26:00,long,9505.0,1,9505,closed,2024-06-04 12:21:00,9783.41,278.41,2.93

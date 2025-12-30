@@ -1,0 +1,5 @@
+TimeStamp,Type,Price,Quantity,Profit/Loss,TotalCost,BaselineVolume,EndVolume,BaselineVolumeMean,EndVolumeMean
+2024-01-08 15:26:00,long,9951.0,1,0.0,9951.0,202240,35433,1685.33,3543.3
+2024-01-18 09:38:00,close,9932.8,1,-18.2,9932.8,0,0,0.0,0.0
+2024-01-20 15:26:00,long,9987.65,1,0.0,9987.65,30114,5053,250.95,505.3
+2024-02-05 14:45:00,close,10437.15,1,449.5,10437.15,0,0,0.0,0.0
