@@ -1,0 +1,4 @@
+,stock,type,entryTime,exitTime,entryPrice,exitPrice,quantity,entryCost,exitCost,status,pnl,profitpct
+44,TCS,long,2024-02-29 15:21:00,2024-03-05T09:15:00.000000000,4117.0,4057.2,1,4117.0,4057.2,closed,-59.8,-1.4525
+136,TCS,long,2024-05-03 15:21:00,2024-05-10T11:31:00.000000000,3851.35,3908.24,1,3851.35,3908.24,closed,56.89,1.4771
+488,TCS,long,2024-12-30 15:21:00,,4196.9,0.0,1,4196.9,0.0,open,0.0,0.0

@@ -1,0 +1,3 @@
+,stock,type,entryTime,exitTime,entryPrice,exitPrice,quantity,entryCost,exitCost,status,pnl,profitpct
+266,ULTRACEMCO,long,2024-08-01 15:21:00,2024-08-02T09:15:00.000000000,12016.75,11833.05,1,12016.75,11833.05,closed,-183.7,-1.5287
+343,ULTRACEMCO,long,2024-09-19 15:21:00,2024-09-20T13:30:00.000000000,11654.35,11713.63,1,11654.35,11713.63,closed,59.28,0.5087

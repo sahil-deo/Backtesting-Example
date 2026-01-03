@@ -9,6 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
+# Raw Data
+data/
 
 # Package manager files
 .python-version
