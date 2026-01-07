@@ -1,0 +1,5 @@
+,stock,type,entryTime,exitTime,entryPrice,exitPrice,quantity,entryCost,exitCost,status,pnl,profitpct
+28,HDFCBANK_minute,long,2024-03-15 15:26:00,2024-03-18 15:29:00,1456.0,1445.9,1,1456.0,1445.9,closed,-10.1,-0.6937
+130,HDFCBANK_minute,long,2024-08-30 15:26:00,2024-09-02 15:29:00,1637.7,1626.2,1,1637.7,1626.2,closed,-11.5,-0.7022
+175,HDFCBANK_minute,long,2024-11-25 15:26:00,2024-11-26 15:29:00,1793.45,1786.2,1,1793.45,1786.2,closed,-7.25,-0.4042
+185,HDFCBANK_minute,long,2024-12-20 15:26:00,2024-12-23 15:29:00,1776.25,1801.85,1,1776.25,1801.85,closed,25.6,1.4412

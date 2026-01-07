@@ -1,0 +1,2 @@
+,stock,type,entryTime,exitTime,entryPrice,exitPrice,quantity,entryCost,exitCost,status,pnl,profitpct
+18,SBIN_minute,long,2024-02-23 15:26:00,2024-02-26 15:29:00,759.2,758.6,1,759.2,758.6,closed,-0.6,-0.079

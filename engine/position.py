@@ -3,10 +3,10 @@ class Position:
                  Name = '', 
                  Type = 'long',
                  Status = 'open', 
-                 EntryTimeStamp = '', 
+                 EntryTimeStamp = None, 
                  EntryPrice = 0, 
                  Quantity = 0, 
-                 ExitTimeStamp = '', 
+                 ExitTimeStamp = None, 
                  ExitPrice = 0, 
         ):
         

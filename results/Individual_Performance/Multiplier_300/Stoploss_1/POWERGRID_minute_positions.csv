@@ -1,0 +1,6 @@
+,stock,type,entryTime,exitTime,entryPrice,exitPrice,quantity,entryCost,exitCost,status,pnl,profitpct
+22,POWERGRID_minute,long,2024-02-29 15:26:00,2024-03-01 15:29:00,284.05,287.65,1,284.05,287.65,closed,3.6,1.2674
+79,POWERGRID_minute,long,2024-06-11 15:26:00,2024-06-12 15:29:00,316.6,324.45,1,316.6,324.45,closed,7.85,2.4795
+96,POWERGRID_minute,long,2024-07-09 15:26:00,2024-07-10 15:29:00,341.0,345.65,1,341.0,345.65,closed,4.65,1.3636
+176,POWERGRID_minute,long,2024-11-25 15:26:00,2024-11-26 09:15:00,344.1,341.06,1,344.1,341.06,closed,-3.05,-0.8849
+192,POWERGRID_minute,long,2024-12-30 15:26:00,,310.3,0.0,1,310.3,0.0,open,0.0,0.0

@@ -1,31 +1,51 @@
-TOPNSTOCKS = 100
-MULTIPLIER = 1.5 # 200%
-STOPLOSS = 0.02 # 2%
-TAKEPROFIT = 0.06 #6%
-TRENDTHRESHOLD = 0.0003 # 3% Slope of the trend should be greater than threshol0d
+TOPNSTOCKS = 5
+MULTIPLIER = [2,3] # 200, 300 %
+STOPLOSS = [0.01, 0.02, 0.03, 0.05, 0.07] # 1, 2 %
+TRENDTHRESHOLD = 0.0001 # 1% Slope of the trend should be greater than threshol0d
 INITIALCAPITAL = 100000
 
 TRAILING = True
-TP = True
 
 STARTDATE = '2024-01-01'
 ENDDATE   = '2024-12-31'
 
-BASELINEX = -135
-BASELINEY = -20
+BASELINEX = -80
+BASELINEY = -15
 
-ENDX = -20
-ENDY = -10
+ENDX = -15
+ENDY = -5
 
-ENTRY = -9
+ENTRY = -4
 
 PATHTODATA = './data'
+TOPSTOCKS = 'results/SortedByProfit/TopStocks_Multi_200.csv'
+GETTOP = True
 
 def getStocks():
-    import os 
-    return [os.path.join(PATHTODATA, f) 
-            for f in os.listdir(PATHTODATA) 
-            if f.endswith(".csv") and os.path.isfile(os.path.join(PATHTODATA, f))]
+    
+    import os
+    import pandas as pd
+
+    allStocks = [
+        os.path.join(PATHTODATA, f)
+        for f in os.listdir(PATHTODATA)
+        if f.endswith(".csv") and os.path.isfile(os.path.join(PATHTODATA, f))
+    ]
+
+    if GETTOP:
+        # read top stocks list
+        top_df = pd.read_csv(TOPSTOCKS)
+
+        # take top N stocks
+        top_names = top_df.head(50)['stock'].tolist()
+
+        # filter only top stocks present in data folder
+        allStocks = [
+            path for path in allStocks
+            if os.path.splitext(os.path.basename(path))[0] in top_names
+        ]
+
+    return allStocks
 
 LISTOFSTOCKS = [
     # ----- Large Cap -----
@@ -84,4 +104,3 @@ LISTOFSTOCKS = [
     'data/data/smallcap/TEJASNET.csv',
     'data/data/smallcap/HINDCOPPER.csv', 
 ]
-

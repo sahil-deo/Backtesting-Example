@@ -7,16 +7,14 @@ from engine.order import Order
 from engine.position import Position
 import configs.volume2_cfg as cfg
 
-STARTDATE       = pd.to_datetime(cfg.STARTDATE).date()
-ENDDATE         = pd.to_datetime(cfg.ENDDATE).date()
-INITIALCAPITAL  = cfg.INITIALCAPITAL
-MULTIPLIER      = cfg.MULTIPLIER
+
 
 def generateMean(df):
 
     results = []
 
     todayDFs = df.groupby('date')
+
     for date, todayDF in todayDFs:
         if len(todayDF) < 135:
             continue
@@ -59,21 +57,27 @@ openPositions = []
 closedPositions = []
 stockMetrics = {}
 
-def runBacktest():
+def runBacktest(i, j, stocks):
+    STARTDATE       = pd.to_datetime(cfg.STARTDATE).date()
+    ENDDATE         = pd.to_datetime(cfg.ENDDATE).date()
+    STOPLOSS        = cfg.STOPLOSS[i]
+    MULTIPLIER      = cfg.MULTIPLIER[j]
+    
+    openPositions = []
+    closedPositions = []
+    stockMetrics = {}
 
     allStocksMean = {}
     allStocksByDate = {}
 
-    for stock in cfg.LISTOFSTOCKS:
+    for stock in stocks:
 
         df = pd.read_csv(stock)
         stockName = stock.split('/')[-1].replace('.csv', '')
         print(stockName)
 
         stockMetrics[stockName] = Metrics(
-            INITIALCAPITAL=cfg.INITIALCAPITAL,
-            CurrentCapital=INITIALCAPITAL,
-            MULTIPLIER=cfg.MULTIPLIER
+            MULTIPLIER=MULTIPLIER
         )  
 
         df["timestamp"] = pd.to_datetime(df["date"])
@@ -85,7 +89,18 @@ def runBacktest():
         df["time"]      = df["timestamp"].dt.time
         df.sort_values('timestamp', inplace=True) 
 
-        allStocksByDate[stockName]=dict(tuple(df.groupby('date')))
+        # allStocksByDate[stockName]=dict(tuple(df.groupby('date')))
+
+        grouped = {}
+        for d, g in df.groupby('date', sort=False):
+            grouped[d] = {
+                "open"  :g['open'].to_numpy(),
+                "close" :g['close'].to_numpy(),
+                "high"  :g['high'].to_numpy(),
+                "low"   :g['low'].to_numpy(),
+                "timestamp":g['timestamp'].to_numpy(),
+            }
+        allStocksByDate[stockName] = grouped
         allStocksMean[stockName]=generateMean(df)
 
     dfs = []
@@ -122,8 +137,6 @@ def runBacktest():
         
         # Continue in case no stock today satisfies the criteria
         if topStocksToday is not None:
-            
-        
         # print(f'{topStocksToday['date'].iloc[0]}:{topStocksToday['stock'].iloc[0]}')
 
         # filter the top n stocks
@@ -131,15 +144,14 @@ def runBacktest():
             if len(topStocksToday) > cfg.TOPNSTOCKS:
                 topStocksToday = topStocksToday[:cfg.TOPNSTOCKS]
 
-        # Entry Logic
-
+            # Entry Logic
             for si in range(len(topStocksToday)):
 
                 # ---- Get OHLC for current stock for today
                 stockName = topStocksToday['stock'].iloc[si]
                 todayDf = allStocksByDate[stockName][dates[di]]
-                price = todayDf['open'].iloc[cfg.ENTRY]
-                timestamp = todayDf['timestamp'].iloc[cfg.ENTRY]
+                price = todayDf['open'][cfg.ENTRY]
+                timestamp = todayDf['timestamp'][cfg.ENTRY]
 
                 # quantity = int(cfg.INITIALCAPITAL / price)
                 quantity = 1 # for pure return % per trade
@@ -176,30 +188,32 @@ def runBacktest():
                 continue
 
             stockName = openPositions[pi].Name
-            
             todayDf = allStocksByDate[stockName][dates[di]]
             
-            highs = todayDf['high'].to_numpy()
-            lows = todayDf['low'].to_numpy()
-            opens = todayDf['open'].to_numpy()
-            timestamps = todayDf['timestamp'].to_numpy()
+            timestamps = todayDf['timestamp']            
+            if dates[di] == pd.Timestamp(openPositions[pi].EntryTimeStamp).date():
+                # dont sell same day
+                continue
+
+            highs = todayDf['high']
+            lows = todayDf['low']
+            opens = todayDf['open']
+
+            sold = False
             for i in range(len(todayDf)):
                 
-                if timestamps[i] <= openPositions[pi].EntryTimeStamp:
-                    continue
+                # if timestamps[i] <= openPositions[pi].EntryTimeStamp:
+                #     continue
 
                 candleHigh = highs[i]
                 candleLow = lows[i]
                 candleOpen = opens[i]
-
+                
                 if cfg.TRAILING:
                     openPositions[pi].High = max(candleHigh, openPositions[pi].High)
                 
-                stopPrice = openPositions[pi].High * (1-cfg.STOPLOSS)
+                stopPrice = openPositions[pi].High * (1-STOPLOSS)
                 stoplossTriggered = False
-
-                tpPrice = openPositions[pi].EntryPrice * (1+cfg.TAKEPROFIT)    
-                tpTriggered = False
 
                 sellPrice = 0
 
@@ -207,19 +221,11 @@ def runBacktest():
                     stoplossTriggered = True
                     sellPrice = candleOpen
 
-                elif candleOpen > tpPrice:
-                    tpTriggered = True
-                    sellPrice = candleOpen
-
                 elif candleLow <= stopPrice:
                     stoplossTriggered = True
                     sellPrice=stopPrice
 
-                elif candleHigh >= tpPrice:
-                    tpTriggered = True
-                    sellPrice = tpPrice
-
-                if stoplossTriggered or (tpTriggered and cfg.TP):
+                if stoplossTriggered:
                     noOfSharesToSell = openPositions[pi].Quantity
                     
                     openPositions[pi].Status = 'closed'
@@ -240,7 +246,34 @@ def runBacktest():
                         Price=sellPrice,
                         TotalCost=cost
                     ))
+                    sold=True
                     break
+            
+            if sold:
+                continue
+
+            # sell eod if not sold entire day
+            noOfSharesToSell = openPositions[pi].Quantity
+            # sellPrice = todayDf['open'][-1]
+            sellPrice = opens[-1]
+            openPositions[pi].Status = 'closed'
+            openPositions[pi].ExitPrice = sellPrice
+            
+            timeStamp = timestamps[-1]
+            openPositions[pi].ExitTimeStamp = timeStamp
+
+            entryPrice = openPositions[pi].EntryPrice
+            cost = sellPrice*noOfSharesToSell
+            profit = cost - (entryPrice*noOfSharesToSell)  
+
+            stockMetrics[stockName].Orders.append(Order(
+                TimeStamp = timeStamp,
+                Quantity = noOfSharesToSell,
+                Type='close',
+                PnL=profit,
+                Price=sellPrice,
+                TotalCost=cost
+            ))
 
     rows = []
     for p in openPositions:
@@ -262,8 +295,14 @@ def runBacktest():
     positionsDf = pd.DataFrame(rows)
     positionsByStock = dict(tuple(positionsDf.groupby('stock')))
 
-    meanDF = pd.DataFrame(columns=['stock', 'profitpct', 'totalTrades', 'winRate', 'avgWinpct', 'avgLosspct', 'expentancypct', 'profitFactor'])
+    positionsDf.sort_values("exitTime", inplace=True)
+    positionsDf.reset_index(drop=True, inplace=True)
+
+    meanDF = pd.DataFrame(columns=['stock', 'profitPct', 'totalTrades', 'winRate', 'avgWinpct', 'avgLosspct', 'expentancypct', 'profitFactor'])
     for stock in positionsByStock.keys():
+
+
+        
         df = positionsByStock[stock]
 
         totalTrades = len(df) 
@@ -276,10 +315,9 @@ def runBacktest():
         expentancyPct = (winRate * avgWinPct) - (lossRate * abs(avgLossPct))
         profitFactor = (wins['profitpct'].sum() / abs(losses['profitpct'].sum())) if len(losses) > 0 else float('inf')
 
-
         row = {
             "stock":stock,
-            "profitpct": round(df['profitpct'].mean(), 2),
+            "profitPct": round((df['pnl'].sum()/df['entryPrice'].sum())*100, 2),
             "totalTrades": totalTrades,
             "winRate": round(winRate, 2),
             "avgWinpct": round(avgWinPct, 2),
@@ -288,9 +326,11 @@ def runBacktest():
             "profitFactor": round(profitFactor, 2)
         }
         meanDF.loc[len(meanDF)] = row
-        positionsByStock[stock].to_csv(f'./results/Multiplier_{int(cfg.MULTIPLIER*100)}/Stoploss_{int(cfg.STOPLOSS*100)}/{stock}_positions.csv')
+        if cfg.GETTOP:
+            positionsByStock[stock].to_csv(f'./results/Top_Stocks_Performance/Multiplier_{int(MULTIPLIER*100)}/Stoploss_{int(STOPLOSS*100)}/{stock}_positions.csv')
+        else:
+            positionsByStock[stock].to_csv(f'./results/Individual_Performance/Multiplier_{int(MULTIPLIER*100)}/Stoploss_{int(STOPLOSS*100)}/{stock}_positions.csv')
     
-    meanDF.to_csv(f"./results/Multi_{int(cfg.MULTIPLIER*100)}_SL_{int(cfg.STOPLOSS*100)}.csv")
-
-
+    # meanDF.to_csv(f"./results/Multi_{int(MULTIPLIER*100)}_SL_{int(STOPLOSS*100)}.csv")
+    return meanDF
 

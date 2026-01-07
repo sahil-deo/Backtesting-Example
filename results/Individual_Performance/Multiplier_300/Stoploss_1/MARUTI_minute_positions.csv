@@ -1,0 +1,5 @@
+,stock,type,entryTime,exitTime,entryPrice,exitPrice,quantity,entryCost,exitCost,status,pnl,profitpct
+66,MARUTI_minute,long,2024-06-10 15:26:00,2024-06-11 15:29:00,12740.0,12859.4,1,12740.0,12859.4,closed,119.4,0.9372
+97,MARUTI_minute,long,2024-07-31 15:26:00,2024-08-01 09:15:00,13099.0,13393.0,1,13099.0,13393.0,closed,294.0,2.2444
+108,MARUTI_minute,long,2024-08-14 15:26:00,2024-08-16 15:29:00,12222.85,12211.0,1,12222.85,12211.0,closed,-11.85,-0.0969
+216,MARUTI_minute,long,2024-12-30 15:26:00,,10799.6,0.0,1,10799.6,0.0,open,0.0,0.0

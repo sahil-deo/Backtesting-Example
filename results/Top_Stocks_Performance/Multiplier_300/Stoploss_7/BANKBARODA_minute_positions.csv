@@ -1,0 +1,5 @@
+,stock,type,entryTime,exitTime,entryPrice,exitPrice,quantity,entryCost,exitCost,status,pnl,profitpct
+33,BANKBARODA_minute,long,2024-03-26 15:26:00,2024-03-27 15:29:00,245.88,244.52,1,245.88,244.52,closed,-1.36,-0.5531
+107,BANKBARODA_minute,long,2024-07-08 15:26:00,2024-07-09 15:29:00,254.0,253.17,1,254.0,253.17,closed,-0.83,-0.3268
+231,BANKBARODA_minute,long,2024-10-31 15:26:00,2024-11-01 18:59:00,243.07,245.01,1,243.07,245.01,closed,1.94,0.7981
+260,BANKBARODA_minute,long,2024-12-10 15:26:00,2024-12-11 15:29:00,254.38,251.76,1,254.38,251.76,closed,-2.62,-1.03

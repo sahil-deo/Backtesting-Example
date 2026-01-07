@@ -1,0 +1,4 @@
+,stock,type,entryTime,exitTime,entryPrice,exitPrice,quantity,entryCost,exitCost,status,pnl,profitpct
+189,BAJFINANCE_minute,long,2024-09-30 15:26:00,2024-10-01 15:29:00,772.5,771.0,1,772.5,771.0,closed,-1.5,-0.1942
+240,BAJFINANCE_minute,long,2024-12-17 15:26:00,2024-12-18 15:29:00,717.0,708.0,1,717.0,708.0,closed,-9.0,-1.2552
+244,BAJFINANCE_minute,long,2024-12-20 15:26:00,2024-12-23 15:29:00,686.0,686.0,1,686.0,686.0,closed,0.0,0.0

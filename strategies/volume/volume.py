@@ -419,6 +419,7 @@ def RunBacktest(ListOfData):
 
 
             # ----- Update Equity daily based on today's share price -----
+            
             Equity = metrics.CurrentCapital
 
             for p in metrics.Positions:
